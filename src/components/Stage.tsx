@@ -7,8 +7,9 @@ export type StageRefs = {
   orbit: HTMLDivElement | null;
   spin: HTMLDivElement | null;
   disc: HTMLCanvasElement | null;
-  sheen: HTMLCanvasElement | null;
   ribbons: HTMLCanvasElement | null;
+  tabA: HTMLDivElement | null;
+  tabB: HTMLDivElement | null;
   badgeOrbit: HTMLDivElement | null;
   badge: HTMLDivElement | null;
   heroNote: HTMLDivElement | null;
@@ -43,14 +44,15 @@ export const Stage = forwardRef<StageRefs>(function Stage(_, ref) {
   return (
     <div className="stage" ref={set('stage')} aria-hidden="true">
       <div className="orbit" ref={set('orbit')}>
+        <canvas className="disc" ref={set('disc')} />
         <div className="spin" ref={set('spin')}>
-          <canvas className="disc" ref={set('disc')} />
           <Sticker />
         </div>
-        <canvas className="sheen" ref={set('sheen')} />
       </div>
 
       <canvas className="ribbons" ref={set('ribbons')} />
+      <div className="ribbon-tab" ref={set('tabA')} />
+      <div className="ribbon-tab" ref={set('tabB')} />
 
       <div className="orbit badge-orbit" ref={set('badgeOrbit')}>
         <div className="badge" ref={set('badge')}>

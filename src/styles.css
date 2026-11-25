@@ -68,20 +68,39 @@ mark.ph {
   margin: calc(var(--disc) / -2) 0 0 calc(var(--disc) / -2);
   will-change: transform; transform-origin: 50% 50%;
 }
-.spin { position: absolute; inset: 0; will-change: transform; }
 .disc { position: absolute; inset: 0; width: 100%; height: 100%; display: block; border-radius: 50%; }
-.sticker {
+.spin {
   position: absolute; left: 50%; top: 50%;
   width: var(--sticker); height: var(--sticker);
   margin: calc(var(--sticker) / -2) 0 0 calc(var(--sticker) / -2);
-  overflow: visible;
+  will-change: transform;
 }
+.sticker { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
 .sticker-paper { fill: var(--label-paper); }
 .sticker-line { fill: none; stroke: var(--sage-deep); stroke-width: 1.4; }
 .sticker-line.thin { stroke-width: 0.6; stroke: var(--sage); }
 .sticker-text { font-family: var(--mono); font-size: 7.6px; letter-spacing: 0.16em; text-transform: uppercase; fill: var(--ink); }
-.sheen { position: absolute; inset: 0; width: 100%; height: 100%; display: block; pointer-events: none; }
 .ribbons { position: absolute; inset: 0; z-index: 2; width: 100%; height: 100%; display: block; }
+.ribbon-tab {
+  position: absolute; left: 0; top: 0; z-index: 2; width: 0; height: 0;
+  visibility: hidden; will-change: transform; transform-origin: 0 0;
+}
+.ribbon-tab::before {
+  content: ''; position: absolute; box-sizing: border-box;
+  left: calc(var(--tab-len) * -1); top: calc(var(--tab-w) / -2);
+  width: calc(var(--tab-len) + 2px); height: var(--tab-w);
+  border: 1px solid rgba(58, 50, 42, 0.35);
+  border-radius: calc(var(--tab-len) * 0.55) 2px 2px calc(var(--tab-len) * 0.55);
+  background:
+    linear-gradient(90deg, transparent 39%, rgba(250, 247, 241, 0.7) 39% calc(39% + 1px), transparent 0) center / 100% 48% no-repeat,
+    linear-gradient(90deg, transparent 57%, rgba(250, 247, 241, 0.7) 57% calc(57% + 1px), transparent 0) center / 100% 48% no-repeat,
+    linear-gradient(90deg, transparent 75%, rgba(250, 247, 241, 0.7) 75% calc(75% + 1px), transparent 0) center / 100% 48% no-repeat,
+    var(--sage);
+}
+.ribbon-tab::after {
+  content: ''; position: absolute; left: -1px; top: calc(var(--band-px) / -2);
+  width: 4px; height: var(--band-px); background: rgba(58, 50, 42, 0.16);
+}
 .badge-orbit { z-index: 3; }
 .badge {
   position: absolute; left: 50%; top: 50%;

@@ -1,9 +1,9 @@
 import { palette } from './palette';
 
 /**
- * Paints the vinyl (grooves, track gaps, rim) once into a canvas. The canvas
- * is then only ever rotated and scaled by CSS transforms, so the browser keeps
- * it as a single GPU texture and never repaints it while scrolling.
+ * Paints the vinyl (grooves, track gaps, rim, light sheen) once into a canvas.
+ * Everything here is radially symmetric or meant to stay still, so the canvas
+ * is never rotated: it is one static texture that is only moved and scaled.
  */
 export function paintDisc(canvas: HTMLCanvasElement, cssSize: number) {
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -57,19 +57,12 @@ export function paintDisc(canvas: HTMLCanvasElement, cssSize: number) {
   g.beginPath();
   g.arc(c, c, c * 0.992, 0, Math.PI * 2);
   g.stroke();
+
+  paintSheen(g, S);
 }
 
-/**
- * The light reflection stays still while the record turns, so it lives on its
- * own non-rotating layer. Baked into a small canvas rather than a CSS mask:
- * masks force an offscreen pass on every composite, a canvas is one texture.
- */
-export function paintSheen(canvas: HTMLCanvasElement) {
-  const S = 768;
-  canvas.width = canvas.height = S;
-  const g = canvas.getContext('2d')!;
+function paintSheen(g: CanvasRenderingContext2D, S: number) {
   const c = S / 2;
-  g.clearRect(0, 0, S, S);
   g.save();
   g.beginPath();
   g.arc(c, c, c * 0.994, 0, Math.PI * 2);

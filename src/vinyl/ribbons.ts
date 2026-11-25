@@ -21,7 +21,7 @@ function travel(q: number, ramp = 0.06) {
   return t / (1 - ramp);
 }
 
-export function createRibbons(canvas: HTMLCanvasElement) {
+export function createRibbons(canvas: HTMLCanvasElement, tabs: HTMLElement[] = []) {
   const ctx = canvas.getContext('2d')!;
   let W = 0, H = 0, cx = 0, cy = 0, dpr = 1;
   let band = 0, b = 0, phase0 = 0, tabLen = 0;
@@ -104,7 +104,9 @@ export function createRibbons(canvas: HTMLCanvasElement) {
 
   function resize(w: number, h: number, labelR: number, mobile: boolean) {
     W = w; H = h; cx = w / 2; cy = h / 2;
-    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    // The sleeve is soft and grainy; 1.25x is indistinguishable from 2x here and
+    // composites under 40% of the pixels on retina screens.
+    dpr = Math.min(window.devicePixelRatio || 1, 1.25);
     canvas.width = Math.round(W * dpr);
     canvas.height = Math.round(H * dpr);
 
@@ -141,37 +143,62 @@ export function createRibbons(canvas: HTMLCanvasElement) {
     endDistance = arms[0].find(sm => sm.r >= endR)?.d ?? arms[0][arms[0].length - 1].d;
     paintTexture(labelR);
     last = -1;
+    drawnTail = -1;
   }
 
-  function drawTab(s: Sample, dir: number) {
-    // Centreline point, tangent (direction of increasing theta) and normal.
-    const x = cx + s.r * Math.cos(s.a), y = cy + s.r * Math.sin(s.a);
-    const tx = b * Math.cos(s.a) - s.r * Math.sin(s.a), ty = b * Math.sin(s.a) + s.r * Math.cos(s.a);
-    const L = Math.hypot(tx, ty) || 1;
-    const ang = Math.atan2(ty / L, tx / L);
+  /** Ribbon polygon for one arm between two distances along it. */
+  function strip(path: Path2D, arm: Sample[], d0: number, d1: number, grow: number) {
+    const e = (sm: Sample, side: 1 | -1) => {
+      const r = Math.max(0, sm.r + side * (band / 2 + grow));
+      return [cx + r * Math.cos(sm.a), cy + r * Math.sin(sm.a)] as const;
+    };
+    const s0 = sampleAt(arm, d0), s1 = sampleAt(arm, d1);
+    const i0 = indexAfter(arm, d0), i1 = indexAfter(arm, d1);
+    path.moveTo(...e(s0, 1));
+    for (let i = i0; i < i1; i++) path.lineTo(...e(arm[i], 1));
+    path.lineTo(...e(s1, 1));
+    path.lineTo(...e(s1, -1));
+    for (let i = i1 - 1; i >= i0; i--) path.lineTo(...e(arm[i], -1));
+    path.lineTo(...e(s0, -1));
+    path.closePath();
+  }
+
+  function placeTabs(tail: number, visible: boolean) {
+    arms.forEach((arm, k) => {
+      const el = tabs[k];
+      if (!el) return;
+      if (!visible) { el.style.visibility = 'hidden'; return; }
+      const sm = sampleAt(arm, tail);
+      const x = cx + sm.r * Math.cos(sm.a), y = cy + sm.r * Math.sin(sm.a);
+      const tx = b * Math.cos(sm.a) - sm.r * Math.sin(sm.a), ty = b * Math.sin(sm.a) + sm.r * Math.cos(sm.a);
+      const ang = Math.atan2(ty, tx);
+      el.style.visibility = 'visible';
+      el.style.transform = `translate3d(${x.toFixed(2)}px,${y.toFixed(2)}px,0) rotate(${ang.toFixed(4)}rad)`;
+    });
+  }
+
+  /*
+   * The canvas is only ever repainted in full on resize. After that each frame
+   * touches just the thin strip between the previous and the new tail: erased
+   * when scrolling forward, re-filled from the texture when scrolling back.
+   * That keeps per-frame raster work proportional to how far the tail moved,
+   * not to the size of the screen times devicePixelRatio².
+   */
+  let drawnTail = -1;
+
+  function paintFrom(tail: number) {
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const path = new Path2D();
+    for (const arm of arms) strip(path, arm, tail, arm[arm.length - 1].d, 0.6);
     ctx.save();
-    ctx.translate(x, y);
-    ctx.rotate(ang);
-    const wTab = band * 0.62, len = tabLen;
-    // Shadow edge where the ribbon has been cut.
-    ctx.fillStyle = 'rgba(58,50,42,0.16)';
-    ctx.fillRect(-1, -band / 2, 4, band);
-    ctx.fillStyle = palette.sage;
-    ctx.strokeStyle = 'rgba(58,50,42,0.35)';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.roundRect(-len * dir, -wTab / 2, len + 2, wTab, [len * 0.55, 2, 2, len * 0.55]);
-    ctx.fill();
-    ctx.stroke();
-    ctx.strokeStyle = 'rgba(250,247,241,0.7)';
-    for (let i = 0; i < 3; i++) {
-      const gx = -len * 0.25 - i * len * 0.18;
-      ctx.beginPath();
-      ctx.moveTo(gx, -wTab * 0.24);
-      ctx.lineTo(gx, wTab * 0.24);
-      ctx.stroke();
-    }
+    ctx.clip(path);
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.drawImage(texture!, 0, 0);
     ctx.restore();
+    drawnTail = tail;
   }
 
   /** p is intro progress in [0, 1]. Returns false once nothing is left to draw. */
@@ -179,40 +206,32 @@ export function createRibbons(canvas: HTMLCanvasElement) {
     const q = clamp(p);
     if (q === last) return q < 1;
     last = q;
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.clearRect(0, 0, W, H);
-    if (q >= 1 || !texture) return false;
-
+    if (!texture) return false;
     const tail = endDistance * travel(q);
-    const path = new Path2D();
-    const tails: Sample[] = [];
-    for (const arm of arms) {
-      const s0 = sampleAt(arm, tail);
-      tails.push(s0);
-      const i0 = indexAfter(arm, tail);
-      const [ox, oy] = edge(s0, 1);
-      path.moveTo(ox, oy);
-      for (let i = i0; i < arm.length; i++) {
-        const [x, y] = edge(arm[i], 1);
-        path.lineTo(x, y);
-      }
-      for (let i = arm.length - 1; i >= i0; i--) {
-        const [x, y] = edge(arm[i], -1);
-        path.lineTo(x, y);
-      }
-      const [ix, iy] = edge(s0, -1);
-      path.lineTo(ix, iy);
-      path.closePath();
+    placeTabs(tail, q > 0 && q < 1);
+    if (drawnTail < 0) paintFrom(tail);
+    else if (tail > drawnTail) {
+      // Overlap the previous cut by a couple of px so antialiased edges never leave a seam.
+      const path = new Path2D();
+      for (const arm of arms) strip(path, arm, Math.max(0, drawnTail - 2), tail, 0.6);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.globalCompositeOperation = 'destination-out';
+      ctx.fill(path);
+      ctx.globalCompositeOperation = 'source-over';
+      drawnTail = tail;
+    } else if (tail < drawnTail) {
+      const path = new Path2D();
+      for (const arm of arms) strip(path, arm, tail, drawnTail + 2, 0.6);
+      ctx.save();
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clip(path);
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.drawImage(texture, 0, 0);
+      ctx.restore();
+      drawnTail = tail;
     }
-    ctx.save();
-    ctx.clip(path);
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.drawImage(texture, 0, 0);
-    ctx.restore();
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    if (q > 0) for (const s of tails) drawTab(s, 1);
-    return true;
+    return q < 1;
   }
 
-  return { resize, render };
+  return { resize, render, metrics: () => ({ band, tabLen }) };
 }

@@ -1,5 +1,5 @@
 import { createRibbons } from './ribbons';
-import { paintDisc, paintSheen } from './disc';
+import { paintDisc } from './disc';
 
 /*
  * One requestAnimationFrame loop drives the whole stage from native scroll.
@@ -8,6 +8,9 @@ import { paintDisc, paintSheen } from './disc';
  *                 ├─ intro progress  → spiral ribbons unwind (canvas)
  *                 ├─ slide progress  → record glides aside, sleeve slides in
  *                 └─ scroll velocity → extra spin, like nudging a platter
+ *
+ * Only the paper label rotates: the grooves are concentric rings, so turning
+ * the vinyl texture would look identical and cost a full-disc composite.
  *
  * The page itself scrolls natively (no wheel hijacking), so momentum,
  * keyboard, find-in-page and assistive tech all keep working. Every per-frame
@@ -21,8 +24,8 @@ export type StageElements = {
   orbit: HTMLElement;
   spin: HTMLElement;
   disc: HTMLCanvasElement;
-  sheen: HTMLCanvasElement;
   ribbons: HTMLCanvasElement;
+  tabs: HTMLElement[];
   badgeOrbit: HTMLElement;
   badge: HTMLElement;
   sleeve: HTMLElement;
@@ -48,6 +51,10 @@ const easeSlide = (t: number) => {
   return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 };
 
+/** Spring stiffness (rad/s) for the smoothed scroll: lower = more glide. */
+const OMEGA_NOTCH = 8.5; // mouse wheel: each ~100px notch eases over ~0.5s
+const OMEGA_CONTINUOUS = 16; // trackpad, touch, scrollbar: light, ~0.12s lag
+
 const BASE_SPEED = 360 / 18; // deg/s at rest: one turn every 18 s
 const MAX_BOOST = 310;
 const SCROLL_NUDGE = 0.16; // deg of extra spin per px/s of scroll velocity
@@ -55,7 +62,9 @@ const SCROLL_NUDGE = 0.16; // deg of extra spin per px/s of scroll velocity
 export function createEngine(el: StageElements, onPhase?: (open: boolean) => void): Engine {
   const reducedQuery = matchMedia('(prefers-reduced-motion: reduce)');
   let reduced = reducedQuery.matches;
-  const ribbons = createRibbons(el.ribbons);
+  const ribbons = createRibbons(el.ribbons, el.tabs);
+  // ?debug exposes the smoothed intro progress for frame-timing checks.
+  const debug = new URLSearchParams(location.search).has('debug') ? ((window as unknown as { __vinyl: { intro: number } }).__vinyl = { intro: 0 }) : null;
 
   let W = 0, H = 0, mobile = false;
   let D0 = 0, R = 0, introLen = 0, slideLen = 0, band = 0, sleeveW = 0;
@@ -63,6 +72,8 @@ export function createEngine(el: StageElements, onPhase?: (open: boolean) => voi
   let toggleSize = 64;
 
   let S = window.scrollY; // smoothed scroll
+  let V = 0; // its velocity, px/s
+  let stiff = OMEGA_CONTINUOUS, stiffTarget = OMEGA_CONTINUOUS, lastNotch = -1e9;
   let lastRawY = S, rawVel = 0;
   let angle = 0, badgeAngle = 0, omega = reduced ? 0 : BASE_SPEED, boost = 0;
   let playing = !reduced;
@@ -119,6 +130,10 @@ export function createEngine(el: StageElements, onPhase?: (open: boolean) => voi
 
     paintDisc(el.disc, D0);
     ribbons.resize(W, H, R, mobile);
+    const m = ribbons.metrics();
+    rs.setProperty('--band-px', `${m.band}px`);
+    rs.setProperty('--tab-len', `${m.tabLen}px`);
+    rs.setProperty('--tab-w', `${m.band * 0.62}px`);
     cache.clear();
     ribbonsLive = true;
   }
@@ -133,15 +148,24 @@ export function createEngine(el: StageElements, onPhase?: (open: boolean) => voi
     lastRawY = y;
     rawVel += (instVel - rawVel) * (1 - Math.exp(-dt * 14));
 
-    // Exponential smoothing toward the real scroll position. Time-based, so it
-    // feels the same at 60Hz and 120Hz.
-    if (reduced) S = y;
+    // Critically damped spring toward the real scroll position, integrated
+    // exactly so it is frame-rate independent. Unlike a plain lerp its
+    // velocity is continuous: a wheel notch's 100px jump eases in and out
+    // instead of starting at full speed, and back-to-back notches blend into
+    // one glide rather than a stop-start staircase.
+    if (reduced) { S = y; V = 0; }
     else {
-      S += (y - S) * (1 - Math.exp(-dt * 9));
-      if (Math.abs(y - S) < 0.25) S = y;
+      if (t - lastNotch > 400) stiffTarget = OMEGA_CONTINUOUS;
+      stiff += (stiffTarget - stiff) * (1 - Math.exp(-dt * 6));
+      const x0 = S - y, w = stiff, k = Math.exp(-w * dt);
+      const c = V + w * x0;
+      S = y + (x0 + c * dt) * k;
+      V = (V - w * c * dt) * k;
+      if (Math.abs(y - S) < 0.2 && Math.abs(V) < 4) { S = y; V = 0; }
     }
 
     const pI = introLen ? clamp(S / introLen) : 1;
+    if (debug) debug.intro = pI;
     const pS = slideLen ? clamp((S - introLen) / slideLen) : 1;
     const e = easeSlide(pS);
 
@@ -220,7 +244,7 @@ export function createEngine(el: StageElements, onPhase?: (open: boolean) => voi
       onPhase?.(open);
     }
 
-    const settling = Math.abs(y - S) > 0.25 || Math.abs(rawVel) > 1 || boost !== 0;
+    const settling = S !== y || V !== 0 || Math.abs(rawVel) > 1 || boost !== 0;
     const spinning = omega !== 0 || (open ? false : Math.abs(badgeAngle) > 0.05);
     if (!document.hidden && (settling || spinning)) schedule();
     else lastT = 0;
@@ -231,6 +255,13 @@ export function createEngine(el: StageElements, onPhase?: (open: boolean) => voi
   }
 
   const onScroll = () => schedule();
+  // Wheel events are only observed (passive), never cancelled: they tell a
+  // notched mouse wheel apart from a trackpad so each gets its own damping.
+  const onWheel = (ev: WheelEvent) => {
+    const notch = ev.deltaMode !== 0 || Math.abs(ev.deltaY) >= 50;
+    if (notch) { stiffTarget = OMEGA_NOTCH; lastNotch = performance.now(); }
+    schedule();
+  };
   const onResize = () => { measure(); schedule(); };
   const onVisibility = () => { lastT = 0; if (!document.hidden) schedule(); };
   const onReduced = () => {
@@ -241,11 +272,11 @@ export function createEngine(el: StageElements, onPhase?: (open: boolean) => voi
     schedule();
   };
 
-  paintSheen(el.sheen);
   measure(true);
   S = window.scrollY;
   lastRawY = S;
   window.addEventListener('scroll', onScroll, { passive: true });
+  window.addEventListener('wheel', onWheel, { passive: true });
   window.addEventListener('resize', onResize);
   document.addEventListener('visibilitychange', onVisibility);
   reducedQuery.addEventListener('change', onReduced);
@@ -256,6 +287,7 @@ export function createEngine(el: StageElements, onPhase?: (open: boolean) => voi
     destroy() {
       cancelAnimationFrame(raf);
       window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('wheel', onWheel);
       window.removeEventListener('resize', onResize);
       document.removeEventListener('visibilitychange', onVisibility);
       reducedQuery.removeEventListener('change', onReduced);
