@@ -76,6 +76,12 @@ export function createEngine(el: StageElements, onPhase?: (open: boolean) => voi
     node.style[prop] = value;
   }
 
+  function tone(name: 'brand' | 'status', v: string) {
+    if (cache.get(name) === v) return;
+    cache.set(name, v);
+    el.root.dataset[name] = v;
+  }
+
   function measure(force = false) {
     const w = window.innerWidth, h = window.innerHeight;
     // Mobile browsers resize the viewport as the URL bar shows and hides.
@@ -171,6 +177,14 @@ export function createEngine(el: StageElements, onPhase?: (open: boolean) => voi
     write(el.heroNote, 'visibility', noteO > 0.01 ? 'visible' : 'hidden', 'noteV');
     write(el.cue, 'opacity', (reduced ? 0 : 1 - range(pI, 0.01, 0.08)).toFixed(3), 'cue');
     write(el.rail, 'opacity', (reduced ? 1 : range(pI, 0.75, 1)).toFixed(3), 'rail');
+
+    // Fixed chrome sits over the light sleeve or the dark record depending on
+    // phase; pick ink or light text for whichever is underneath it.
+    const underRibbons = pI < 0.85;
+    const sleeveEdge = sleeveW + (e - 1) * (sleeveW + 24);
+    const brandInk = underRibbons || (!mobile && sleeveEdge > 140);
+    tone('brand', brandInk ? 'ink' : 'light');
+    tone('status', underRibbons ? 'ink' : 'light');
 
     // Pause button follows the record's centre (desktop) or tucks into the band (mobile).
     const tx0 = W / 2, ty0 = H - (mobile ? 64 : 74);

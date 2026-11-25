@@ -61,17 +61,17 @@ export function createRibbons(canvas: HTMLCanvasElement) {
     t.height = Math.round(H * dpr);
     const g = t.getContext('2d')!;
     g.setTransform(dpr, 0, 0, dpr, 0, 0);
-    g.fillStyle = palette.clay;
+    g.fillStyle = palette.sand;
     g.fillRect(0, 0, W, H);
 
     // Soft vignette so the sleeve reads as a printed surface, not flat UI.
     const v = g.createRadialGradient(cx, cy, labelR, cx, cy, Math.hypot(W, H) / 2);
-    v.addColorStop(0, 'rgba(244,239,230,0.05)');
-    v.addColorStop(1, 'rgba(20,14,8,0.22)');
+    v.addColorStop(0, 'rgba(250,247,241,0.35)');
+    v.addColorStop(1, 'rgba(58,50,42,0.10)');
     g.fillStyle = v;
     g.fillRect(0, 0, W, H);
 
-    g.strokeStyle = 'rgba(30,22,14,0.16)';
+    g.strokeStyle = 'rgba(58,50,42,0.08)';
     g.lineWidth = 0.6;
     const maxR = Math.hypot(W, H) / 2 + band;
     for (let r = labelR + 4; r < maxR; r += 5) {
@@ -81,7 +81,7 @@ export function createRibbons(canvas: HTMLCanvasElement) {
     }
 
     // Fine seam along each ribbon's outer edge, so the coils read as ribbons.
-    g.strokeStyle = 'rgba(28,20,12,0.38)';
+    g.strokeStyle = 'rgba(86,101,74,0.30)';
     g.lineWidth = 1.1;
     for (const arm of arms) {
       g.beginPath();
@@ -96,7 +96,7 @@ export function createRibbons(canvas: HTMLCanvasElement) {
     const rnd = () => ((seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0) / 4294967296);
     const count = Math.round((W * H) / 55);
     for (let i = 0; i < count; i++) {
-      g.fillStyle = rnd() > 0.55 ? 'rgba(244,239,230,0.05)' : 'rgba(24,16,8,0.08)';
+      g.fillStyle = rnd() > 0.55 ? 'rgba(250,247,241,0.35)' : 'rgba(58,50,42,0.06)';
       g.fillRect(rnd() * W, rnd() * H, 0.8, 0.8);
     }
     texture = t;
@@ -154,16 +154,16 @@ export function createRibbons(canvas: HTMLCanvasElement) {
     ctx.rotate(ang);
     const wTab = band * 0.62, len = tabLen;
     // Shadow edge where the ribbon has been cut.
-    ctx.fillStyle = 'rgba(16,10,4,0.28)';
+    ctx.fillStyle = 'rgba(58,50,42,0.16)';
     ctx.fillRect(-1, -band / 2, 4, band);
-    ctx.fillStyle = palette.putty;
-    ctx.strokeStyle = 'rgba(40,30,18,0.55)';
+    ctx.fillStyle = palette.sage;
+    ctx.strokeStyle = 'rgba(58,50,42,0.35)';
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.roundRect(-len * dir, -wTab / 2, len + 2, wTab, [len * 0.55, 2, 2, len * 0.55]);
     ctx.fill();
     ctx.stroke();
-    ctx.strokeStyle = 'rgba(91,76,58,0.55)';
+    ctx.strokeStyle = 'rgba(250,247,241,0.7)';
     for (let i = 0; i < 3; i++) {
       const gx = -len * 0.25 - i * len * 0.18;
       ctx.beginPath();

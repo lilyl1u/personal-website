@@ -89,9 +89,9 @@ export function paintSheen(canvas: HTMLCanvasElement) {
     g.fillRect(0, 0, S, S);
   }
   const rg = g.createRadialGradient(c, c, c * 0.6, c, c, c);
-  rg.addColorStop(0, 'rgba(138,115,86,0)');
-  rg.addColorStop(0.6, 'rgba(138,115,86,0.08)');
-  rg.addColorStop(1, 'rgba(138,115,86,0)');
+  rg.addColorStop(0, 'rgba(156,168,138,0)');
+  rg.addColorStop(0.6, 'rgba(156,168,138,0.10)');
+  rg.addColorStop(1, 'rgba(156,168,138,0)');
   g.fillStyle = rg;
   g.fillRect(0, 0, S, S);
   g.restore();

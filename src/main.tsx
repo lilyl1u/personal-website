@@ -6,6 +6,9 @@ import '@fontsource/instrument-sans/700-italic.css';
 import '@fontsource/ibm-plex-mono/400.css';
 import './styles.css';
 import App from './App';
+import { applyPalette } from './vinyl/palette';
+
+applyPalette();
 
 if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
 
