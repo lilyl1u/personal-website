@@ -48,8 +48,9 @@ const easeSlide = (t: number) => {
   return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 };
 
-const BASE_SPEED = 360 / 9; // deg/s at rest: a calm, readable spin
-const MAX_BOOST = 620;
+const BASE_SPEED = 360 / 18; // deg/s at rest: one turn every 18 s
+const MAX_BOOST = 310;
+const SCROLL_NUDGE = 0.16; // deg of extra spin per px/s of scroll velocity
 
 export function createEngine(el: StageElements, onPhase?: (open: boolean) => void): Engine {
   const reducedQuery = matchMedia('(prefers-reduced-motion: reduce)');
@@ -197,7 +198,7 @@ export function createEngine(el: StageElements, onPhase?: (open: boolean) => voi
     const target = playing ? BASE_SPEED : 0;
     omega += (target - omega) * (1 - Math.exp(-dt * (playing ? 1.6 : 2.4)));
     if (!playing && Math.abs(omega) < 0.05) omega = 0;
-    const want = reduced ? 0 : clamp(rawVel * 0.32, -MAX_BOOST, MAX_BOOST) * (playing ? 1 : 0.6);
+    const want = reduced ? 0 : clamp(rawVel * SCROLL_NUDGE, -MAX_BOOST, MAX_BOOST) * (playing ? 1 : 0.6);
     boost += (want - boost) * (1 - Math.exp(-dt * (Math.abs(want) > Math.abs(boost) ? 8 : 2.2)));
     if (Math.abs(boost) < 0.05 && want === 0) boost = 0;
     const speed = omega + boost;
