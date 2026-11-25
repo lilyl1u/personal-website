@@ -1,9 +1,9 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
-// Relative base so the build works from a domain root or a GitHub Pages
-// project path (username.github.io/repo-name/) without changes.
+// Served from https://lilyl1u.github.io/personal-website/. Override with
+// BASE_PATH=/ when deploying to a domain root (Netlify, Vercel, custom domain).
 export default defineConfig({
-  base: './',
+  base: process.env.BASE_PATH ?? '/personal-website/',
   plugins: [react()],
 });

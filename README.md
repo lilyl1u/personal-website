@@ -36,32 +36,15 @@ underline so it is easy to spot. Two placeholders remain:
 
 ## Deploy
 
-The build uses a relative base path (`base: './'` in `vite.config.ts`), so the
-same `dist/` works at a domain root or under a sub-path.
+Live at **https://lilyl1u.github.io/personal-website/**.
 
-**GitHub Pages**: push the repo, then in *Settings → Pages* choose
-*GitHub Actions* and add this workflow as `.github/workflows/deploy.yml`:
+**GitHub Pages** (already set up): `.github/workflows/deploy.yml` builds and
+deploys on every push to `main`. The repo's *Settings → Pages → Source* must be
+*GitHub Actions*. `vite.config.ts` sets `base: '/personal-website/'` to match
+the Pages sub-path; if the repo is renamed, update it.
 
-```yaml
-name: Deploy
-on: { push: { branches: [main] } }
-permissions: { contents: read, pages: write, id-token: write }
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    environment: github-pages
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: 20, cache: npm }
-      - run: npm ci && npm run build
-      - uses: actions/upload-pages-artifact@v3
-        with: { path: dist }
-      - uses: actions/deploy-pages@v4
-```
-
-**Netlify / Vercel / Cloudflare Pages**: import the repo, build command
-`npm run build`, output directory `dist`.
+**Netlify / Vercel / Cloudflare Pages / custom domain** (site at the domain
+root): build command `BASE_PATH=/ npm run build`, output directory `dist`.
 
 ## How the motion works
 
