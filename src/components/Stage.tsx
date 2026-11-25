@@ -63,7 +63,7 @@ export const Stage = forwardRef<StageRefs>(function Stage(_, ref) {
       </div>
 
       <div className="hero-note" ref={set('heroNote')}>
-        <span className="mono kicker">{site.heroKicker}</span>
+        <span className="caps kicker">{site.heroKicker}</span>
         <p>
           <Txt>{site.heroLine}</Txt>
         </p>
@@ -73,7 +73,7 @@ export const Stage = forwardRef<StageRefs>(function Stage(_, ref) {
       </div>
 
       <div className="cue" ref={set('cue')}>
-        <span className="mono">Drop the needle</span>
+        <span className="caps">Drop the needle</span>
         <i>↓</i>
       </div>
     </div>

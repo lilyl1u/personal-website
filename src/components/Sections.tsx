@@ -22,7 +22,7 @@ function Ext() {
 function Head({ index, title, id }: { index: number; title: string; id: string }) {
   return (
     <header className="liner-head">
-      <span className="mono crumb">
+      <span className="caps crumb">
         {num(index)} · Side {index < 3 ? 'A' : 'B'}
       </span>
       <h2 id={`${id}-h`}>{title}</h2>
@@ -34,7 +34,7 @@ export function Sections() {
   return (
     <>
       <section className="cover liner" aria-labelledby="name">
-        <span className="mono crumb">Portfolio · {new Date().getFullYear()}</span>
+        <span className="caps crumb">Portfolio · {new Date().getFullYear()}</span>
         <h1 id="name">{site.name}</h1>
         <p className="lede">{site.role}</p>
         <p className="cover-line">
@@ -69,7 +69,7 @@ export function Sections() {
         <dl className="facts">
           {about.facts.map(f => (
             <div key={f.label}>
-              <dt className="mono">{f.label}</dt>
+              <dt className="caps">{f.label}</dt>
               <dd>
                 <Txt>{f.value}</Txt>
               </dd>
@@ -81,11 +81,11 @@ export function Sections() {
       {projects.length > 0 && (
         <section id="projects" className="liner" aria-labelledby="projects-h">
           <Head id="projects" index={1} title="Projects" />
-          <p className="mono side-note">Side A · Selected work</p>
+          <p className="caps side-note">Side A · Selected work</p>
           <ol className="tracks">
             {projects.map((p, i) => (
               <li key={i} className="track">
-                <span className="mono no">A{i + 1}</span>
+                <span className="caps no">A{i + 1}</span>
                 <div className="track-main">
                   <div className="track-top">
                     <h3>
@@ -103,7 +103,7 @@ export function Sections() {
                     ))}
                   </ul>
                   <div className="track-foot">
-                    <ul className="stack mono" aria-label="Built with">
+                    <ul className="stack" aria-label="Built with">
                       {p.stack.map(s => (
                         <li key={s}>
                           <Txt>{s}</Txt>
@@ -134,7 +134,7 @@ export function Sections() {
           <ol className="roles">
             {experience.map((r, i) => (
               <li key={i} className="role">
-                <span className="mono when">
+                <span className="caps when">
                   <Txt>{r.dates}</Txt>
                 </span>
                 <div>
@@ -164,7 +164,7 @@ export function Sections() {
           <div className="skills">
             {skills.map(g => (
               <div key={g.label} className="skill-group">
-                <h3 className="mono">{g.label}</h3>
+                <h3 className="caps">{g.label}</h3>
                 <ul>
                   {g.items.map(s => (
                     <li key={s}>
@@ -186,7 +186,7 @@ export function Sections() {
         <dl className="facts">
           {contact.links.map(l => (
             <div key={l.label}>
-              <dt className="mono">{l.label}</dt>
+              <dt className="caps">{l.label}</dt>
               <dd>
                 <a href={l.href} {...(l.href.startsWith('http') ? { target: '_blank', rel: 'noopener noreferrer' } : {})}>
                   <Txt>{l.value}</Txt>
@@ -196,7 +196,7 @@ export function Sections() {
             </div>
           ))}
         </dl>
-        <footer className="mono foot">
+        <footer className="caps foot">
           <span>{contact.footer}</span>
           <a href="#top">Back to the top ↑</a>
         </footer>

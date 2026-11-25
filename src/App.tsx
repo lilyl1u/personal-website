@@ -94,7 +94,7 @@ export default function App() {
               history.replaceState(null, '', `#${s.id}`);
             }}
           >
-            <span className="mono n">{String(i + 1).padStart(2, '0')}</span>
+            <span className="caps n">{String(i + 1).padStart(2, '0')}</span>
             <span className="l">{s.label}</span>
           </a>
         </li>
@@ -116,7 +116,7 @@ export default function App() {
           <i className="dot" />
           {site.name}
         </a>
-        <span className="mono status">
+        <span className="caps status">
           <i className="dot" />
           {site.status}
         </span>
