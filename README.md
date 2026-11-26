@@ -60,7 +60,9 @@ root): build command `BASE_PATH=/ npm run build`, output directory `dist`.
   down and back up like a turntable motor.
 - `src/vinyl/ribbons.ts` paints the sleeve texture once per resize and, during
   the intro, rebuilds a single path from the current tail position.
-- Phones held upright: the record slides up into a band at the top and the
-  content sheet rises over it, with sticky section tabs.
+- Phones held upright (width ≤ 820px and taller than wide): the record slides
+  up into a band at the top, then the content sheet rises over it and covers
+  it completely as the record fades out; the sections get the full screen
+  with sticky tabs, and the spin pauses until you scroll back up.
 - `prefers-reduced-motion: reduce`: no intro, no spin, no scroll-linked
   motion; the page opens straight on the liner notes beside a still record.

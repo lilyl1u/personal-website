@@ -34,6 +34,7 @@ export type StageElements = {
   heroNote: HTMLElement;
   cue: HTMLElement;
   toggle: HTMLElement;
+  topbar: HTMLElement;
 };
 
 export type Engine = {
@@ -177,11 +178,15 @@ export function createEngine(el: StageElements, onPhase?: (open: boolean) => voi
     write(el.orbit, 'transform', orbitT, 'orbit');
     write(el.badgeOrbit, 'transform', orbitT, 'badgeOrbit');
 
+    // Mobile: the content sheet rises natively and the record window always
+    // ends exactly at its top edge. It rests as a band, then the sheet keeps
+    // going and covers it completely while the record and its chrome fade.
+    let away = 0, edge = H;
     if (mobile) {
-      // The content sheet rises natively; the record window shrinks to a band
-      // that always ends exactly at the sheet's top edge.
       const sheetTop = introLen + slideLen + band - y;
-      const bottom = clamp(sheetTop, band, H);
+      const bottom = clamp(sheetTop, 0, H);
+      away = 1 - range(bottom, 0, band);
+      edge = Math.min(bottom, band);
       write(el.stage, 'clipPath', bottom >= H ? 'none' : `inset(0 0 ${(H - bottom).toFixed(1)}px 0)`, 'clip');
       write(el.sleeve, 'transform', 'none', 'sleeve');
       write(el.content, 'transform', 'none', 'content');
@@ -191,6 +196,15 @@ export function createEngine(el: StageElements, onPhase?: (open: boolean) => voi
       write(el.sleeve, 'transform', sx, 'sleeve');
       write(el.content, 'transform', e >= 1 ? 'none' : sx, 'content');
     }
+    const hidden = away >= 1;
+    const shown = (1 - away).toFixed(3);
+    const vis = hidden ? 'hidden' : 'visible';
+    write(el.stage, 'opacity', shown, 'stageO');
+    write(el.stage, 'visibility', vis, 'stageV');
+    write(el.topbar, 'opacity', shown, 'topbarO');
+    write(el.topbar, 'visibility', vis, 'topbarV');
+    write(el.toggle, 'opacity', shown, 'toggleO');
+    write(el.toggle, 'visibility', vis, 'toggleV');
 
     // Intro canvas only redraws while it is actually changing.
     if (ribbonsLive || pI < 1) ribbonsLive = ribbons.render(reduced ? 1 : pI);
@@ -213,7 +227,7 @@ export function createEngine(el: StageElements, onPhase?: (open: boolean) => voi
 
     // Pause button follows the record's centre (desktop) or tucks into the band (mobile).
     const tx0 = W / 2, ty0 = H - (mobile ? 64 : 74);
-    const tx1 = mobile ? W - 40 : cxF, ty1 = mobile ? band - 40 : H - 70;
+    const tx1 = mobile ? W - 40 : cxF, ty1 = mobile ? edge - 40 : H - 70;
     const tx = lerp(tx0, tx1, e) - toggleSize / 2, ty = lerp(ty0, ty1, e) - toggleSize / 2;
     write(el.toggle, 'transform', `translate3d(${tx.toFixed(2)}px,${ty.toFixed(2)}px,0)`, 'toggle');
 
@@ -227,7 +241,7 @@ export function createEngine(el: StageElements, onPhase?: (open: boolean) => voi
     if (Math.abs(boost) < 0.05 && want === 0) boost = 0;
     const speed = omega + boost;
     angle = (angle + speed * dt) % 360;
-    write(el.spin, 'transform', `rotate(${angle.toFixed(3)}deg)`, 'spin');
+    if (!hidden) write(el.spin, 'transform', `rotate(${angle.toFixed(3)}deg)`, 'spin');
 
     // The centre label stays upright under the sleeve, then joins the spin.
     const open = pI >= 0.999;
@@ -237,7 +251,7 @@ export function createEngine(el: StageElements, onPhase?: (open: boolean) => voi
       badgeAngle += (to - badgeAngle) * (1 - Math.exp(-dt * 7));
       if (Math.abs(to - badgeAngle) < 0.05) badgeAngle = 0;
     }
-    write(el.badge, 'transform', `rotate(${badgeAngle.toFixed(3)}deg)`, 'badge');
+    if (!hidden) write(el.badge, 'transform', `rotate(${badgeAngle.toFixed(3)}deg)`, 'badge');
 
     if (open !== lastOpen) {
       lastOpen = open;
@@ -245,7 +259,8 @@ export function createEngine(el: StageElements, onPhase?: (open: boolean) => voi
     }
 
     const settling = S !== y || V !== 0 || Math.abs(rawVel) > 1 || boost !== 0;
-    const spinning = omega !== 0 || (open ? false : Math.abs(badgeAngle) > 0.05);
+    // While the sheet covers the record the loop sleeps; scrolling back wakes it.
+    const spinning = !hidden && (omega !== 0 || (open ? false : Math.abs(badgeAngle) > 0.05));
     if (!document.hidden && (settling || spinning)) schedule();
     else lastT = 0;
   }

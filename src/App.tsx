@@ -17,6 +17,7 @@ export default function App() {
   const contentRef = useRef<HTMLDivElement>(null);
   const railRef = useRef<HTMLElement>(null);
   const toggleRef = useRef<HTMLButtonElement>(null);
+  const topbarRef = useRef<HTMLElement>(null);
   const engineRef = useRef<Engine | null>(null);
   const [playing, setPlaying] = useState(() => !prefersReduced());
   const [active, setActive] = useState<string>('');
@@ -39,6 +40,7 @@ export default function App() {
       content: contentRef.current!,
       rail: railRef.current!,
       toggle: toggleRef.current!,
+      topbar: topbarRef.current!,
     });
     engineRef.current = engine;
     return () => engine.destroy();
@@ -111,7 +113,7 @@ export default function App() {
       <Stage ref={stageRefs} />
       <div className="sleeve" ref={sleeveRef} aria-hidden="true" />
 
-      <header className="topbar">
+      <header className="topbar" ref={topbarRef}>
         <a href="#top" className="brand" onClick={e => { e.preventDefault(); window.scrollTo({ top: 0, behavior: prefersReduced() ? 'auto' : 'smooth' }); }}>
           <i className="dot" />
           {site.name}
