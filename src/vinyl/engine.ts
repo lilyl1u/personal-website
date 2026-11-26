@@ -187,7 +187,9 @@ export function createEngine(el: StageElements, onPhase?: (open: boolean) => voi
       const bottom = clamp(sheetTop, 0, H);
       away = 1 - range(bottom, 0, band);
       edge = Math.min(bottom, band);
-      write(el.stage, 'clipPath', bottom >= H ? 'none' : `inset(0 0 ${(H - bottom).toFixed(1)}px 0)`, 'clip');
+      // Inset from the real stage height, not H: H can lag the viewport by up
+      // to the URL-bar slack ignored in measure(), which would open a gap.
+      write(el.stage, 'clipPath', bottom >= H ? 'none' : `inset(0 0 calc(100% - ${bottom.toFixed(1)}px) 0)`, 'clip');
       write(el.sleeve, 'transform', 'none', 'sleeve');
       write(el.content, 'transform', 'none', 'content');
     } else {
